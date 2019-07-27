@@ -79,7 +79,37 @@ class Transmission
         $mapper   = $this->getMapper();
         $response = $this->getClient()->call('torrent-get', array(
             'fields' => array_keys(Torrent::getMapping()),
-            'ids'    => $id
+            'ids'    => array($id)
+        ));
+
+        $torrent = array_reduce(
+            $this->getValidator()->validate('torrent-get', $response),
+            function ($torrent, $data) use ($mapper, $client) {
+                return $torrent ? $torrent : $mapper->map(new Torrent($client), $data);
+            }
+        );
+
+        if (!$torrent instanceof Torrent) {
+            throw new \RuntimeException(sprintf("Torrent with ID %s not found", $id));
+        }
+
+        return $torrent;
+    }
+
+    /**
+     * Get a specific torrent from the download queue
+     *
+     * @param  integer                    $id
+     * @return Torrent
+     * @throws \RuntimeException
+     */
+    public function getMultiple($ids)
+    {
+        $client   = $this->getClient();
+        $mapper   = $this->getMapper();
+        $response = $this->getClient()->call('torrent-get', array(
+            'fields' => array_keys(Torrent::getMapping()),
+            'ids'    => $ids
         ));
 
         $torrent = array_map(
